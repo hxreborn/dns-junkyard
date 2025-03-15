@@ -16,12 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history to ensure proper diff detection
+          fetch-depth: 0  # Ensure full history for proper diff detection
 
       - name: Find modified TXT files
         id: modified_files
         run: |
-          MODIFIED_FILES=$(git diff --name-only -- '*.txt' || true)
+          MODIFIED_FILES=$(git ls-files -m '*.txt')
 
           if [ -z "$MODIFIED_FILES" ]; then
             echo "No .txt files changed, exiting."
