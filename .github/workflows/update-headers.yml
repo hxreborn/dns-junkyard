@@ -16,12 +16,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensure full history for proper diff detection
+          fetch-depth: 0  # Full history to avoid shallow clone issues
+
+      - name: Debug Git State
+        run: |
+          echo "### Git Status ###"
+          git status
+          echo "### Git Diff HEAD~1 ###"
+          git diff HEAD~1 --stat
+          echo "### Git Log Last 2 Commits ###"
+          git log -2 --oneline
 
       - name: Find modified TXT files
         id: modified_files
         run: |
-          MODIFIED_FILES=$(git ls-files -m '*.txt')
+          MODIFIED_FILES=$(git diff --name-only HEAD~1 -- '*.txt')
+          echo "### Detected Modified Files ###"
+          echo "$MODIFIED_FILES"
 
           if [ -z "$MODIFIED_FILES" ]; then
             echo "No .txt files changed, exiting."
@@ -29,7 +40,6 @@ jobs:
           else
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
             echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
-            echo "Modified files: $MODIFIED_FILES"
           fi
 
       - name: Update Headers
