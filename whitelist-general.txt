@@ -10,4 +10,3 @@
 !Syntax: AdBlock
 !Number of entries: 0
 @@||triggertest.es
-@@||triggertest.es
