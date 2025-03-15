@@ -1,0 +1,11 @@
+[Adblock Plus]
+Title: DNS Junkyard - General Blocklist
+Description: A general blocklist for unwanted domains using Adblock syntax.
+Homepage: https://github.com/rafareborn/dns-junkyard
+License: https://github.com/rafareborn/dns-junkyard/blob/main/LICENSE
+Issues: https://github.com/rafareborn/dns-junkyard/issues
+Expires: never (Manual update)
+Last modified: 15 Mar 2025 19:19 UTC
+Version: 2025.0315.1919.09
+Syntax: AdBlock
+Number of entries: 0
