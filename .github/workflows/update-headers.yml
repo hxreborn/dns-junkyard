@@ -19,23 +19,24 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Detect modified .txt files
-        id: detect-files
+      - name: Get modified .txt files
         run: |
           if git rev-parse HEAD^ >/dev/null 2>&1; then
             MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD -- '*.txt' || true)
           else
             MODIFIED_FILES=$(git ls-files '*.txt')
           fi
+          
           if [ -z "$MODIFIED_FILES" ]; then
             echo "No .txt files changed, exiting."
-            echo "modified=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "FILES_MODIFIED=$MODIFIED_FILES" >> $GITHUB_ENV
+            exit 0
           fi
 
-      - name: Update headers in modified files
-        if: env.FILES_MODIFIED
+          echo "FILES_MODIFIED<<EOF" >> $GITHUB_ENV
+          echo "$MODIFIED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Update headers for modified files
         run: |
           timestamp=$(date -u +"%d %b %Y %H:%M UTC")
           version=$(date -u +"%Y.%m%d.%H%M.%S")
@@ -49,19 +50,13 @@ jobs:
             sed -i "s|^! Number of entries: .*|! Number of entries: $num_entries|" "$file"
           }
 
-          for file in $FILES_MODIFIED; do
+          for file in $MODIFIED_FILES; do
             update_headers "$file"
           done
 
       - name: Commit and push updates
-        if: env.FILES_MODIFIED
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add $FILES_MODIFIED
-          if git diff --cached --quiet; then
-            echo "No header changes detected."
-          else
-            git commit -m "🤖 Auto-update headers for modified blocklists"
-            git push
-          fi
+          git add *.txt
+          git diff --cached --quiet || (git commit -m "Auto-update headers for modified files" && git push)
