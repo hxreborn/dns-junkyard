@@ -12,6 +12,8 @@ on:
 jobs:
   update-headers:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: github.event.pull_request.merged == true || github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
