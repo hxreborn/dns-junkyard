@@ -16,18 +16,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2  # Ensure we have at least two commits for git diff
 
       - name: Get modified .txt files
         id: changed-files
         run: |
-          if git rev-parse HEAD^ >/dev/null 2>&1; then
-            modified_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.txt$' || true)
-          else
-            modified_files=$(git ls-files '*.txt')
-          fi
-          
+          modified_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.txt$' || true)
           if [ -z "$modified_files" ]; then
             echo "No .txt files changed, exiting."
             exit 0
