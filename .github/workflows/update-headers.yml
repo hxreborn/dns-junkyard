@@ -16,12 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0  # Fetch full history to ensure proper diff detection
 
       - name: Find modified TXT files
         id: modified_files
         run: |
-          MODIFIED_FILES=$(git diff --name-only --diff-filter=AM -- '*.txt' || true)
+          MODIFIED_FILES=$(git diff --name-only -- '*.txt' || true)
 
           if [ -z "$MODIFIED_FILES" ]; then
             echo "No .txt files changed, exiting."
@@ -29,6 +29,7 @@ jobs:
           else
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
             echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
+            echo "Modified files: $MODIFIED_FILES"
           fi
 
       - name: Update Headers
