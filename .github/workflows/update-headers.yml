@@ -1,0 +1,55 @@
+name: Auto-Update Headers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  update-headers:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get modified .txt files
+        id: changed-files
+        run: |
+          modified_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.txt$' || true)
+          if [ -z "$modified_files" ]; then
+            echo "No .txt files changed, exiting."
+            exit 0
+          fi
+          echo "FILES_MODIFIED<<EOF" >> $GITHUB_ENV
+          echo "$modified_files" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Update headers for modified files
+        run: |
+          timestamp=$(date -u +"%d %b %Y %H:%M UTC")
+          version=$(date -u +"%Y.%m%d.%H%M.%S")
+
+          update_headers() {
+            file=$1
+            [ -f "$file" ] || return
+
+            num_entries=$(grep -vE "^\s*$|^\s*!|^\s*#" "$file" | tail -n +11 | wc -l)
+            sed -i "s|^Last modified: .*|Last modified: $timestamp|" "$file"
+            sed -i "s|^Version: .*|Version: $version|" "$file"
+            sed -i "s|^Number of entries: .*|Number of entries: $num_entries|" "$file"
+          }
+
+          for file in $FILES_MODIFIED; do
+            update_headers "$file"
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add $FILES_MODIFIED
+          git diff --quiet || (git commit -m "Auto-update headers for modified files" && git push)
