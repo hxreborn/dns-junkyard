@@ -8,4 +8,6 @@ Expires: never (Manual update)
 Last modified: 15 Mar 2025 19:19 UTC
 Version: 2025.0315.1919.09
 Syntax: AdBlock
-Number of entries: 0
+Number of entries: 1
+||softonic.com^$important
+
