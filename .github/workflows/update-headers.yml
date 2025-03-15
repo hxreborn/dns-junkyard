@@ -38,7 +38,7 @@ jobs:
             file=$1
             [ -f "$file" ] || return
 
-            num_entries=$(grep -vE "^\s*$|^\s*!|^\s*#" "$file" | tail -n +11 | wc -l)
+            num_entries=$(grep -vE "^\s*$|^\s*!\s*$|^\s*#" "$file" | tail -n +11 | wc -l | tr -d ' ')
             sed -i "s|^! Last modified: .*|! Last modified: $timestamp|" "$file"
             sed -i "s|^! Version: .*|! Version: $version|" "$file"
             sed -i "s|^! Number of entries: .*|! Number of entries: $num_entries|" "$file"
