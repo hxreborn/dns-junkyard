@@ -16,29 +16,34 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Get modified .txt files
-        id: changed-files
+      - name: Detect modified .txt files
+        id: detect-files
         run: |
-          modified_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.txt$' || true)
-          if [ -z "$modified_files" ]; then
-            echo "No .txt files changed, exiting."
-            exit 0
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD -- '*.txt' || true)
+          else
+            MODIFIED_FILES=$(git ls-files '*.txt')
           fi
-          echo "FILES_MODIFIED<<EOF" >> $GITHUB_ENV
-          echo "$modified_files" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "No .txt files changed, exiting."
+            echo "modified=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "FILES_MODIFIED=$MODIFIED_FILES" >> $GITHUB_ENV
+          fi
 
-      - name: Update headers for modified files
+      - name: Update headers in modified files
+        if: env.FILES_MODIFIED
         run: |
           timestamp=$(date -u +"%d %b %Y %H:%M UTC")
           version=$(date -u +"%Y.%m%d.%H%M.%S")
 
           update_headers() {
-            file=$1
+            local file=$1
             [ -f "$file" ] || return
-
-            num_entries=$(grep -vE "^\s*$|^\s*!\s*$|^\s*#" "$file" | tail -n +11 | wc -l | tr -d ' ')
+            num_entries=$(grep -vE "^\s*$|^\s*[#!]" "$file" | tail -n +11 | wc -l | tr -d ' ')
             sed -i "s|^! Last modified: .*|! Last modified: $timestamp|" "$file"
             sed -i "s|^! Version: .*|! Version: $version|" "$file"
             sed -i "s|^! Number of entries: .*|! Number of entries: $num_entries|" "$file"
@@ -48,9 +53,15 @@ jobs:
             update_headers "$file"
           done
 
-      - name: Commit and push changes
+      - name: Commit and push updates
+        if: env.FILES_MODIFIED
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add $FILES_MODIFIED
-          git diff --quiet || (git commit -m "Auto-update headers for modified files" && git push)
+          if git diff --cached --quiet; then
+            echo "No header changes detected."
+          else
+            git commit -m "🤖 Auto-update headers for modified blocklists"
+            git push
+          fi
