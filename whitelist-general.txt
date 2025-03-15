@@ -9,4 +9,4 @@
 !Version: 2025.0315.1919.09
 !Syntax: AdBlock
 !Number of entries: 0
-@@||triggertest.es
+@@||triggertest.ess
