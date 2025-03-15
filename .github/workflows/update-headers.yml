@@ -16,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history to avoid shallow clone issues
+          fetch-depth: 0  # Ensure full history for proper diff detection
 
       - name: Debug Git State
         run: |
-          echo "### Git Status ###"
+          echo "### Git Status Before Modifications ###"
           git status
           echo "### Git Diff HEAD~1 ###"
           git diff HEAD~1 --stat
@@ -42,7 +42,7 @@ jobs:
             echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
           fi
 
-      - name: Update Headers
+      - name: Force Update Headers
         if: env.HAS_CHANGES == 'true'
         run: |
           update_headers() {
@@ -53,11 +53,18 @@ jobs:
             local version=$(date -u +"%Y.%m%d.%H%M.%S")
             local num_entries=$(grep -vE "^\s*$|^\s*[#!]" "$file" | tail -n +11 | wc -l | tr -d ' ')
 
+            echo "Updating headers for: $file"
+            echo "Timestamp: $timestamp, Version: $version, Entries: $num_entries"
+
             sed -E -i "
-              s|^Last modified: .*|Last modified: $timestamp|;
-              s|^Version: .*|Version: $version|;
-              s|^Number of entries: .*|Number of entries: $num_entries|;
+              s|^(Last modified: ).*|\1$timestamp|;
+              s|^(Version: ).*|\1$version|;
+              s|^(Number of entries: ).*|\1$num_entries|;
             " "$file"
+
+            # Force change if nothing was modified
+            echo "" >> "$file"
+            truncate -s -1 "$file"
           }
 
           for file in $MODIFIED_FILES; do
@@ -72,8 +79,12 @@ jobs:
           git add $MODIFIED_FILES
           
           if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
+            echo "No changes to commit, forcing an update."
+            for file in $MODIFIED_FILES; do
+              echo "" >> "$file"
+              truncate -s -1 "$file"
+            done
+            git add $MODIFIED_FILES
           fi
 
           git commit -m "Auto-update headers"
