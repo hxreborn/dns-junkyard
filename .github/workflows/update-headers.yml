@@ -7,11 +7,12 @@ on:
   pull_request:
     types:
       - closed
+  workflow_dispatch:
 
 jobs:
   update-headers:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    if: github.event.pull_request.merged == true || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,9 +39,9 @@ jobs:
             [ -f "$file" ] || return
 
             num_entries=$(grep -vE "^\s*$|^\s*!|^\s*#" "$file" | tail -n +11 | wc -l)
-            sed -i "s|^Last modified: .*|Last modified: $timestamp|" "$file"
-            sed -i "s|^Version: .*|Version: $version|" "$file"
-            sed -i "s|^Number of entries: .*|Number of entries: $num_entries|" "$file"
+            sed -i "s|^! Last modified: .*|! Last modified: $timestamp|" "$file"
+            sed -i "s|^! Version: .*|! Version: $version|" "$file"
+            sed -i "s|^! Number of entries: .*|! Number of entries: $num_entries|" "$file"
           }
 
           for file in $FILES_MODIFIED; do
