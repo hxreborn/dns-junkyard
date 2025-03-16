@@ -1,94 +1,80 @@
-name: Auto-Update Headers
+name: Update Headers in Text Files
 
 on:
   push:
-    branches:
-      - main
+    paths:
+      - "**.txt"
   pull_request:
     types:
       - closed
+    paths:
+      - "**.txt"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   update-headers:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history needed for proper diff detection
+          fetch-depth: 0
 
-      - name: Debug Git State
+      - name: Get latest commit timestamp
+        id: commit_time
+        run: echo "timestamp=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+      - name: Detect modified .txt files
+        id: changed_files
         run: |
-          echo "### Git Status Before Modifications ###"
-          git status
-          echo "### Git Diff HEAD~1 ###"
-          git diff HEAD~1 --stat
-          echo "### Git Log Last 2 Commits ###"
-          git log -2 --oneline
-
-      - name: Find modified TXT files
-        id: modified_files
-        run: |
-          MODIFIED_FILES=$(git diff --name-only HEAD~1 -- '*.txt')
-          echo "### Detected Modified Files ###"
-          echo "$MODIFIED_FILES"
-
+          MODIFIED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.txt')
+          echo "files=$MODIFIED_FILES" >> $GITHUB_ENV
           if [ -z "$MODIFIED_FILES" ]; then
-            echo "No .txt files changed, exiting."
-            echo "HAS_CHANGES=false" >> $GITHUB_ENV
-          else
-            echo "HAS_CHANGES=true" >> $GITHUB_ENV
-            echo "MODIFIED_FILES=$MODIFIED_FILES" >> $GITHUB_ENV
+            echo "No .txt files modified, skipping."
+            exit 0
           fi
 
-      - name: Force Update Headers
-        if: env.HAS_CHANGES == 'true'
+      - name: Update headers
         run: |
-          update_headers() {
-            local file="$1"
-            [ -f "$file" ] || return
+          for file in ${{ env.files }}; do
+            echo "Processing $file"
 
-            local timestamp=$(date -u +"%d %b %Y %H:%M UTC")
-            local version=$(date -u +"%Y.%m%d.%H%M.%S")
-            local num_entries=$(grep -vE "^\s*$|^\s*[#!]" "$file" | tail -n +11 | wc -l | tr -d ' ')
+            VERSION=$(grep -oP '^# Version: \K[0-9]+\.[0-9]+\.[0-9]+' "$file" || echo "1.0.0")
 
-            echo "Updating headers for: $file"
-            echo "Timestamp: $timestamp, Version: $version, Entries: $num_entries"
+            IFS='.' read -r major minor patch <<< "$VERSION"
+            
+            NEW_VERSION="$major.$minor.$((patch + 1))"
 
-            sed -E -i "
-              s|^(Last modified: ).*|\1$timestamp|;
-              s|^(Version: ).*|\1$version|;
-              s|^(Number of entries: ).*|\1$num_entries|;
-            " "$file"
+            ENTRY_COUNT=$(grep -cE '^\|\| |^@@' "$file" || echo "0")
 
-            # Ensure Git detects a change
-            echo " " >> "$file"  # Add a space
-            sed -i '$ s/ $//' "$file"  # Remove the space to keep the file unchanged visually
-          }
+            COMMIT_HASH=$(git rev-parse --short HEAD)
 
-          for file in $MODIFIED_FILES; do
-            update_headers "$file"
+            # Replace headers
+            sed -i "s/^# Last Modified: .*/# Last Modified: ${{ env.timestamp }}/" "$file"
+            sed -i "s/^# Version: .*/# Version: $NEW_VERSION/" "$file"
+            sed -i "s/^# Entry Count: .*/# Entry Count: $ENTRY_COUNT/" "$file"
+            sed -i "s/^# Commit: .*/# Commit: $COMMIT_HASH/" "$file"
+
+            echo "Updated headers for $file"
           done
 
-      - name: Commit updated headers
-        if: env.HAS_CHANGES == 'true'
+      - name: Check for changes
+        id: check_diff
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add $MODIFIED_FILES
-
-          # If no real changes, force one by modifying whitespace
-          if git diff --cached --quiet; then
-            echo "Forcing commit due to Git ignoring changes."
-            for file in $MODIFIED_FILES; do
-              echo " " >> "$file"  # Add a space
-              sed -i '$ s/ $//' "$file"  # Remove it back
-            done
-            git add $MODIFIED_FILES
+          if git diff --quiet; then
+            echo "No changes detected, skipping commit."
+            exit 0
           fi
 
-          git commit -m "Auto-update headers"
+      - name: Commit and push updates
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add *.txt
+          git commit -m "Auto-update headers in text files"
+          git pull --rebase
           git push
