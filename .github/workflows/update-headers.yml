@@ -32,49 +32,41 @@ jobs:
         run: |
           MODIFIED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.txt')
           echo "files=$MODIFIED_FILES" >> $GITHUB_ENV
-          if [ -z "$MODIFIED_FILES" ]; then
-            echo "No .txt files modified, skipping."
-            exit 0
-          fi
+          if [ -z "$MODIFIED_FILES" ]; then exit 0; fi
+
+      - name: Debug File Changes
+        run: |
+          echo "Listing modified files:"
+          git status --short
+          echo "Full diff output:"
+          git diff
 
       - name: Update headers
         run: |
           for file in ${{ env.files }}; do
-            echo "Processing $file"
-
             VERSION=$(grep -oP '^# Version: \K[0-9]+\.[0-9]+\.[0-9]+' "$file" || echo "1.0.0")
-
             IFS='.' read -r major minor patch <<< "$VERSION"
-            
             NEW_VERSION="$major.$minor.$((patch + 1))"
-
             ENTRY_COUNT=$(grep -cE '^\|\| |^@@' "$file" || echo "0")
-
             COMMIT_HASH=$(git rev-parse --short HEAD)
 
-            # Replace headers
-            sed -i "s/^# Last Modified: .*/# Last Modified: ${{ env.timestamp }}/" "$file"
-            sed -i "s/^# Version: .*/# Version: $NEW_VERSION/" "$file"
-            sed -i "s/^# Entry Count: .*/# Entry Count: $ENTRY_COUNT/" "$file"
-            sed -i "s/^# Commit: .*/# Commit: $COMMIT_HASH/" "$file"
-
-            echo "Updated headers for $file"
+            awk -v date="${{ env.timestamp }}" -v ver="$NEW_VERSION" -v count="$ENTRY_COUNT" -v hash="$COMMIT_HASH" '
+              /^# Last Modified:/ {$0="# Last Modified: " date}
+              /^# Version:/ {$0="# Version: " ver}
+              /^# Entry Count:/ {$0="# Entry Count: " count}
+              /^# Commit:/ {$0="# Commit: " hash}
+              {print}
+            ' "$file" > temp.txt && mv temp.txt "$file"
           done
 
-      - name: Check for changes
-        id: check_diff
+      - name: Debug File Changes After Update
         run: |
-          if git diff --quiet; then
-            echo "No changes detected, skipping commit."
-            exit 0
-          fi
+          echo "Listing modified files after header update:"
+          git status --short
+          echo "Full diff output after update:"
+          git diff
 
-      - name: Commit and push updates
+      - name: Force Git to Detect Changes
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add *.txt
-          git commit -m "Auto-update headers in text files"
-          git pull --rebase
-          git push
+          git add -u
+          git diff --cached --exit-code || (echo "Changes detected, committing..." && git commit -m "Auto-update headers in text files" && git pull --rebase && git push)
