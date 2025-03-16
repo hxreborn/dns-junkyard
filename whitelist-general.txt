@@ -5,9 +5,9 @@
 !License: https://github.com/rafareborn/dns-junkyard/blob/main/LICENSE
 !Issues: https://github.com/rafareborn/dns-junkyard/issues
 !Expires: never (Manual update)
-!Last modified: 16 Mar 2025 19:11 UTC
-!Version: 2025.0316.1911
+!Last modified: 16 Mar 2025 19:49 UTC
+!Version: 2025.0316.1949
 !Syntax: AdBlock
-!Number of entries: 1
+!Number of entries: 2
 @@||test.es
 @@||torrenttv16.space^$important
