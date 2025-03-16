@@ -25,36 +25,29 @@ jobs:
 
       - name: Get latest commit timestamp
         id: commit_time
-        run: echo "timestamp=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+        run: echo "TIMESTAMP=$(date -u '+%d %b %Y %H:%M UTC')" >> $GITHUB_ENV
 
       - name: Detect all .txt files
         id: changed_files
         run: |
-          MODIFIED_FILES=$(git ls-files '*.txt')
-          echo "files=$MODIFIED_FILES" >> $GITHUB_ENV
+          echo "FILES=$(git ls-files '*.txt' | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Update headers
         run: |
-          for file in ${{ env.files }}; do
+          for file in $FILES; do
             echo "Processing $file"
-            VERSION=$(grep -oP '^# Version: \K[0-9]+\.[0-9]+\.[0-9]+' "$file" || echo "1.0.0")
-            IFS='.' read -r major minor patch <<< "$VERSION"
-            NEW_VERSION="$major.$minor.$((patch + 1))"
-            ENTRY_COUNT=$(grep -cE '^\|\| |^@@' "$file" || echo "0")
-            COMMIT_HASH=$(git rev-parse --short HEAD)
+            VERSION_DATE=$(date -u '+%Y.%m%d.%H%M')
+            ENTRY_COUNT=$(grep -cE '^@@||' "$file" || echo "0")
 
-            # Replace headers
-            sed -i "s/^# Last Modified: .*/# Last Modified: ${{ env.timestamp }}/" "$file"
-            sed -i "s/^# Version: .*/# Version: $NEW_VERSION/" "$file"
-            sed -i "s/^# Entry Count: .*/# Entry Count: $ENTRY_COUNT/" "$file"
-            sed -i "s/^# Commit: .*/# Commit: $COMMIT_HASH/" "$file"
+            sed -i "s/^!Last modified:.*/!Last modified: $TIMESTAMP/" "$file"
+            sed -i "s/^!Version:.*/!Version: $VERSION_DATE/" "$file"
+            sed -i "s/^!Number of entries:.*/!Number of entries: $ENTRY_COUNT/" "$file"
 
-            touch "$file" # Force Git to detect the change
+            touch "$file"
             echo "Updated headers for $file"
           done
 
-      - name: Check for changes
-        id: check_diff
+      - name: Commit and push updates
         run: |
           git add -A
           git update-index --refresh
