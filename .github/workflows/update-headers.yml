@@ -23,55 +23,47 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Normalize Line Endings
-        run: |
-          find . -name "*.txt" -exec dos2unix {} \; || true
-
       - name: Get latest commit timestamp
         id: commit_time
         run: echo "timestamp=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
 
-      - name: Detect modified .txt files
+      - name: Detect all .txt files
         id: changed_files
         run: |
-          MODIFIED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.txt')
+          MODIFIED_FILES=$(git ls-files '*.txt')
           echo "files=$MODIFIED_FILES" >> $GITHUB_ENV
-          if [ -z "$MODIFIED_FILES" ]; then exit 0; fi
-
-      - name: Debug File Changes
-        run: |
-          echo "Listing modified files:"
-          git status --short
-          echo "Full diff output:"
-          git diff
 
       - name: Update headers
         run: |
           for file in ${{ env.files }}; do
+            echo "Processing $file"
             VERSION=$(grep -oP '^# Version: \K[0-9]+\.[0-9]+\.[0-9]+' "$file" || echo "1.0.0")
             IFS='.' read -r major minor patch <<< "$VERSION"
             NEW_VERSION="$major.$minor.$((patch + 1))"
             ENTRY_COUNT=$(grep -cE '^\|\| |^@@' "$file" || echo "0")
             COMMIT_HASH=$(git rev-parse --short HEAD)
 
-            awk -v date="${{ env.timestamp }}" -v ver="$NEW_VERSION" -v count="$ENTRY_COUNT" -v hash="$COMMIT_HASH" '
-              /^# Last Modified:/ {print "# Last Modified: " date; next}
-              /^# Version:/ {print "# Version: " ver; next}
-              /^# Entry Count:/ {print "# Entry Count: " count; next}
-              /^# Commit:/ {print "# Commit: " hash; next}
-              {print}
-            ' "$file" > temp.txt && mv temp.txt "$file"
+            # Replace headers
+            sed -i "s/^# Last Modified: .*/# Last Modified: ${{ env.timestamp }}/" "$file"
+            sed -i "s/^# Version: .*/# Version: $NEW_VERSION/" "$file"
+            sed -i "s/^# Entry Count: .*/# Entry Count: $ENTRY_COUNT/" "$file"
+            sed -i "s/^# Commit: .*/# Commit: $COMMIT_HASH/" "$file"
+
+            touch "$file" # Force Git to detect the change
+            echo "Updated headers for $file"
           done
 
-      - name: Debug File Changes After Update
-        run: |
-          echo "Listing modified files after header update:"
-          git status --short
-          echo "Full diff output after update:"
-          git diff
-
-      - name: Force Git to Detect Changes
+      - name: Check for changes
+        id: check_diff
         run: |
           git add -A
           git update-index --refresh
-          git diff --cached --exit-code || (echo "Changes detected, committing..." && git commit -m "Auto-update headers in text files" && git pull --rebase && git push)
+          if git diff --cached --exit-code; then
+            echo "No real changes detected, but ensuring headers are correct."
+            git commit --amend --no-edit || echo "No changes to amend."
+          else
+            echo "Changes detected, committing..."
+            git commit -m "Auto-update headers in text files"
+          fi
+          git pull --rebase
+          git push --force
