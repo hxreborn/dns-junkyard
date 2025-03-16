@@ -1,4 +1,4 @@
-name: Update Headers in Text Files
+name: Update Headers in Filter Files
 
 on:
   push:
@@ -32,36 +32,39 @@ jobs:
         id: commit_time
         run: echo "TIMESTAMP=$(date -u '+%d %b %Y %H:%M UTC')" >> $GITHUB_ENV
 
-      - name: Detect all .txt files
+      - name: Detect modified .txt files
         id: changed_files
         run: |
-          echo "FILES=$(git ls-files '*.txt' | tr '\n' ' ')" >> $GITHUB_ENV
+          MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD -- '*.txt' | tr '\n' ' ')
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "No modified .txt files, skipping."
+            exit 0
+          fi
+          echo "FILES=$MODIFIED_FILES" >> $GITHUB_ENV
 
       - name: Update headers
         run: |
           for file in $FILES; do
             echo "Processing $file"
             VERSION_DATE=$(date -u '+%Y.%m%d.%H%M')
-            ENTRY_COUNT=$(grep -cE '^@@||' "$file" || echo "0")
+            ENTRY_COUNT=$(grep -Ec '^(\|\||@@)' "$file" || echo "0")
 
-            sed -i "s/^!Last modified:[[:space:]]*/!Last modified: $TIMESTAMP/" "$file"
-            sed -i "s/^!Version:[[:space:]]*/!Version: $VERSION_DATE/" "$file"
-            sed -i "s/^!Number of entries:[[:space:]]*/!Number of entries: $ENTRY_COUNT/" "$file"
+            sed -i -E "s/^!Last modified:.*/!Last modified: $TIMESTAMP/" "$file"
+            sed -i -E "s/^!Version:.*/!Version: $VERSION_DATE/" "$file"
+            sed -i -E "s/^!Number of entries:.*/!Number of entries: $ENTRY_COUNT/" "$file"
 
-            touch "$file"
             echo "Updated headers for $file"
           done
 
       - name: Commit and push updates
         run: |
-          git add -A
+          git add $FILES
           git update-index --refresh
           if git diff --cached --exit-code; then
-            echo "No real changes detected, but ensuring headers are correct."
-            git commit --amend --no-edit || echo "No changes to amend."
-          else
-            echo "Changes detected, committing..."
-            git commit -m "Auto-update headers in text files"
+            echo "No changes detected, skipping commit."
+            exit 0
           fi
+          echo "Changes detected, committing..."
+          git commit -m "Auto-update headers in text files"
           git pull --rebase
-          git push --force
+          git push
