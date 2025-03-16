@@ -5,8 +5,8 @@
 !License: https://github.com/rafareborn/dns-junkyard/blob/main/LICENSE
 !Issues: https://github.com/rafareborn/dns-junkyard/issues
 !Expires: never (Manual update)
-!Last modified: 16 Mar 2025 19:08 UTC
-!Version: 2025.0316.1908
+!Last modified: 16 Mar 2025 19:11 UTC
+!Version: 2025.0316.1911
 !Syntax: AdBlock
 !Number of entries: 1
 @@||test.es
