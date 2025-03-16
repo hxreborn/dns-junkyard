@@ -10,4 +10,4 @@
 !Syntax: AdBlock
 !Number of entries: 1
 @@||test.es
-
+@@||torrenttv16.space^$important
