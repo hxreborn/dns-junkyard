@@ -9,5 +9,5 @@
 !Version: 2025.0316.1908
 !Syntax: AdBlock
 !Number of entries: 1
-@@||triggertest.es
+@@||test.es
 
