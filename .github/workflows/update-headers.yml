@@ -23,6 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Get latest commit timestamp
         id: commit_time
         run: echo "TIMESTAMP=$(date -u '+%d %b %Y %H:%M UTC')" >> $GITHUB_ENV
@@ -39,9 +44,9 @@ jobs:
             VERSION_DATE=$(date -u '+%Y.%m%d.%H%M')
             ENTRY_COUNT=$(grep -cE '^@@||' "$file" || echo "0")
 
-            sed -i "s/^!Last modified:.*/!Last modified: $TIMESTAMP/" "$file"
-            sed -i "s/^!Version:.*/!Version: $VERSION_DATE/" "$file"
-            sed -i "s/^!Number of entries:.*/!Number of entries: $ENTRY_COUNT/" "$file"
+            sed -i "s/^!Last modified:[[:space:]]*/!Last modified: $TIMESTAMP/" "$file"
+            sed -i "s/^!Version:[[:space:]]*/!Version: $VERSION_DATE/" "$file"
+            sed -i "s/^!Number of entries:[[:space:]]*/!Number of entries: $ENTRY_COUNT/" "$file"
 
             touch "$file"
             echo "Updated headers for $file"
