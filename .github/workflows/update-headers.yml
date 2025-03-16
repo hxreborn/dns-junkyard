@@ -1,4 +1,4 @@
-name: Update Headers in Filter Files
+name: Update Filter List Metadata
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  update-headers:
+  update-metadata:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -28,24 +28,25 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Get latest commit timestamp
+      - name: Capture latest commit timestamp
         id: commit_time
         run: echo "TIMESTAMP=$(date -u '+%d %b %Y %H:%M UTC')" >> $GITHUB_ENV
 
-      - name: Detect modified .txt files
+      - name: Identify modified filter lists
         id: changed_files
         run: |
           MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD -- '*.txt' | tr '\n' ' ')
           if [ -z "$MODIFIED_FILES" ]; then
-            echo "No modified .txt files, skipping."
+            echo "No changes detected in filter lists. Skipping update."
             exit 0
           fi
           echo "FILES=$MODIFIED_FILES" >> $GITHUB_ENV
+          echo "Processing modified filter lists: $MODIFIED_FILES"
 
-      - name: Update headers
+      - name: Update filter list metadata
         run: |
           for file in $FILES; do
-            echo "Processing $file"
+            echo "Updating metadata for $file"
             VERSION_DATE=$(date -u '+%Y.%m%d.%H%M')
             ENTRY_COUNT=$(grep -Ec '^(\|\||@@)' "$file" || echo "0")
 
@@ -53,7 +54,7 @@ jobs:
             sed -i -E "s/^!Version:.*/!Version: $VERSION_DATE/" "$file"
             sed -i -E "s/^!Number of entries:.*/!Number of entries: $ENTRY_COUNT/" "$file"
 
-            echo "Updated headers for $file"
+            echo "Metadata updated for $file"
           done
 
       - name: Commit and push updates
@@ -61,10 +62,10 @@ jobs:
           git add $FILES
           git update-index --refresh
           if git diff --cached --exit-code; then
-            echo "No changes detected, skipping commit."
+            echo "No metadata changes detected. Skipping commit."
             exit 0
           fi
-          echo "Changes detected, committing..."
-          git commit -m "Auto-update headers in text files"
+          echo "Committing updated filter list metadata..."
+          git commit -m "Update filter list metadata for: $FILES"
           git pull --rebase
           git push
