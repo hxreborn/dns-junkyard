@@ -10,3 +10,4 @@
 !Syntax: AdBlock
 !Number of entries: 121
 ||softonic.com^$important
+||bloqueadaseccionsegunda.cultura.gob.es^$important
