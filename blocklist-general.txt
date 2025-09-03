@@ -5,8 +5,8 @@
 !License: https://github.com/hexpreso/dns-junkyard/blob/main/LICENSE
 !Issues: https://github.com/hexpreso/dns-junkyard/issues
 !Expires: never (Manual update)
-!Last modified: 12 Apr 2025 16:45 UTC
-!Version: 2025.0412.1645
+!Last modified: 03 Sep 2025 19:12 UTC
+!Version: 2025.0903.1912
 !Syntax: AdBlock
 !Number of entries: 2
 ||softonic.com^$important
