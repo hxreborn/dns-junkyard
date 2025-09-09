@@ -1,9 +1,9 @@
 [Adblock Plus]
 !Title: DNS Junkyard - General Whitelist
 !Description: A general allowlist for domains using Adblock syntax.
-!Homepage: https://github.com/hexpreso/dns-junkyard
-!License: https://github.com/hexpreso/dns-junkyard/blob/main/LICENSE
-!Issues: https://github.com/hexpreso/dns-junkyard/issues
+!Homepage: https://github.com/hxreborn/dns-junkyard
+!License: https://github.com/hxreborn/dns-junkyard/blob/main/LICENSE
+!Issues: https://github.com/hxreborn/dns-junkyard/issues
 !Expires: never (Manual update)
 !Last modified: 03 Sep 2025 19:12 UTC
 !Version: 2025.0903.1912
