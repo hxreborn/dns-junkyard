@@ -5,8 +5,8 @@
 !License: https://github.com/hxreborn/dns-junkyard/blob/main/LICENSE
 !Issues: https://github.com/hxreborn/dns-junkyard/issues
 !Expires: never (Manual update)
-!Last modified: 03 Sep 2025 19:12 UTC
-!Version: 2025.0903.1912
+!Last modified: 09 Sep 2025 15:04 UTC
+!Version: 2025.0909.1504
 !Syntax: AdBlock
 !Number of entries: 2
 @@||test.es
