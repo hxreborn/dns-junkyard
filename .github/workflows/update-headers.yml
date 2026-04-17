@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   update-metadata:
+    # Skip bot-authored commits — apply.sh already writes full metadata
+    if: "!startsWith(github.event.head_commit.message, 'feat(blocklist):')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
