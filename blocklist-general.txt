@@ -5,9 +5,15 @@
 !License: https://github.com/hxreborn/dns-junkyard/blob/main/LICENSE
 !Issues: https://github.com/hxreborn/dns-junkyard/issues
 !Expires: never (Manual update)
-!Last modified: 09 Sep 2025 15:12 UTC
-!Version: 2025.0909.1512
+!Last modified: 01 Jun 2026 20:00 UTC
+!Version: 2026.0601.2000
 !Syntax: AdBlock
-!Number of entries: 2
+!Number of entries: 7
 ||softonic.com^$important
 ||bloqueadaseccionsegunda.cultura.gob.es^$important
+! Google Ads (LSPosed Manager and general adsbygoogle)
+||pagead2.googlesyndication.com^$important
+||googlesyndication.com^$important
+||adservice.google.com^$important
+||googleads.g.doubleclick.net^$important
+||tpc.googlesyndication.com^$important
